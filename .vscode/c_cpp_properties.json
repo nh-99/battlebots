@@ -1,0 +1,60 @@
+//
+// !!! WARNING !!! AUTO-GENERATED FILE!
+// PLEASE DO NOT MODIFY IT AND USE "platformio.ini":
+// https://docs.platformio.org/page/projectconf/section_env_build.html#build-flags
+//
+{
+    "configurations": [
+        {
+            "name": "PlatformIO",
+            "includePath": [
+                "/home/noah/Documents/code/c++/battlebots/include",
+                "/home/noah/Documents/code/c++/battlebots/src",
+                "/home/noah/Documents/code/c++/battlebots/.pio/libdeps/ATmega2560/Servo/src",
+                "/home/noah/Documents/code/c++/battlebots/.pio/libdeps/ATmega2560/IBusBM/src",
+                "/home/noah/.platformio/packages/framework-arduino-avr/cores/arduino",
+                "/home/noah/.platformio/packages/framework-arduino-avr/variants/mega",
+                "/home/noah/.platformio/packages/framework-arduino-avr/libraries/EEPROM/src",
+                "/home/noah/.platformio/packages/framework-arduino-avr/libraries/HID/src",
+                "/home/noah/.platformio/packages/framework-arduino-avr/libraries/SPI/src",
+                "/home/noah/.platformio/packages/framework-arduino-avr/libraries/SoftwareSerial/src",
+                "/home/noah/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
+                ""
+            ],
+            "browse": {
+                "limitSymbolsToIncludedHeaders": true,
+                "path": [
+                    "/home/noah/Documents/code/c++/battlebots/include",
+                    "/home/noah/Documents/code/c++/battlebots/src",
+                    "/home/noah/Documents/code/c++/battlebots/.pio/libdeps/ATmega2560/Servo/src",
+                    "/home/noah/Documents/code/c++/battlebots/.pio/libdeps/ATmega2560/IBusBM/src",
+                    "/home/noah/.platformio/packages/framework-arduino-avr/cores/arduino",
+                    "/home/noah/.platformio/packages/framework-arduino-avr/variants/mega",
+                    "/home/noah/.platformio/packages/framework-arduino-avr/libraries/EEPROM/src",
+                    "/home/noah/.platformio/packages/framework-arduino-avr/libraries/HID/src",
+                    "/home/noah/.platformio/packages/framework-arduino-avr/libraries/SPI/src",
+                    "/home/noah/.platformio/packages/framework-arduino-avr/libraries/SoftwareSerial/src",
+                    "/home/noah/.platformio/packages/framework-arduino-avr/libraries/Wire/src",
+                    ""
+                ]
+            },
+            "defines": [
+                "PLATFORMIO=60105",
+                "ARDUINO_AVR_MEGA2560",
+                "F_CPU=16000000L",
+                "ARDUINO_ARCH_AVR",
+                "ARDUINO=10808",
+                "__AVR_ATmega2560__",
+                ""
+            ],
+            "cStandard": "c11",
+            "cppStandard": "c++11",
+            "compilerPath": "/home/noah/.platformio/packages/toolchain-atmelavr/bin/avr-gcc",
+            "compilerArgs": [
+                "-mmcu=atmega2560",
+                ""
+            ]
+        }
+    ],
+    "version": 4
+}

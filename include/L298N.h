@@ -1,5 +1,5 @@
-#ifndef BTS7960_h
-#define BTS7960_h
+#ifndef L298N_h
+#define L298N_h
 
 #if defined(ARDUINO) && ARDUINO >= 100
 #include "Arduino.h"
@@ -9,12 +9,11 @@
 
 #include "motor_driver.h"
 
-class BTS7960: public MotorDriver
+class L298N: public MotorDriver
 {
   public:
-    BTS7960(uint8_t EN, uint8_t L_PWM, uint8_t R_PWM) : BTS7960(EN, 0, L_PWM, R_PWM) {}
-    BTS7960(uint8_t L_EN, uint8_t R_EN, uint8_t L_PWM, uint8_t R_PWM);
-    BTS7960();
+    L298N(uint8_t L_PWM, uint8_t R_PWM);
+    L298N();
     void Enable();
     void Disable();
 
@@ -23,8 +22,6 @@ class BTS7960: public MotorDriver
     void Stop();
 
   private:
-    uint8_t _L_EN;
-    uint8_t _R_EN;
     uint8_t _L_PWM;
     uint8_t _R_PWM;
 };
