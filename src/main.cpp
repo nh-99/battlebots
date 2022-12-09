@@ -8,11 +8,9 @@
 #define IBUS_SENSOR_TYPE_FUEL 0x06
 
 // Stick values for iBUS
-#define FULL_SPEED_FORWARDS 2012
-#define FULL_SPEED_BACKWARDS 988
-#define FULL_SPEED_RIGHT 2012
-#define FULL_SPEED_LEFT 988
-#define TRUE_CENTER 1500
+#define TX_CHANNEL_HIGH 2012
+#define TX_CHANNEL_LOW 988
+#define TX_CHANNEL_MIDDLE 1500
 #define STICK_DEADZONE 10
 
 // Drivetrain motor PWM
@@ -53,7 +51,7 @@
  * Channel 10 - ???
  */
 
-// IBusBM ibus; // IBus object
+IBusBM ibus; // IBus object
 
 // Motors for swerve drive
 L298N frontLeftMotor(FLM_L_PWM, FLM_R_PWM);
@@ -64,9 +62,14 @@ L298N backRightMotor(BRM_L_PWM, BRM_R_PWM);
 Servo armServo;
 Servo weaponEsc;
 
-// Used in loop for test code
+/**
+ * Global lock on robot. Prevents all parts of robot from functioning until enabled.
+*/
+bool robotLocked = true;
+
 int lastRightLeftMoveVal, lastForwardBackwardMoveVal = 0;
-bool outputWritten = false;
+bool weaponValueChanged = false;
+bool weaponArmed, escArmed = false;
 
 // SwerveDrive swerveDrive(&frontLeftMotor, &frontRightMotor, &backLeftMotor, &backRightMotor);
 
@@ -113,19 +116,48 @@ void testFunctionality() {
 //   }
 
 //   // TEST WEAPON
-//   if (!outputWritten) {
+//   if (!weaponValueChanged) {
 //     int pwmVal = map(300, 0, 1023, 1100, 1900);
 //     weaponEsc.writeMicroseconds(pwmVal);
-//     outputWritten = true;
+//     weaponValueChanged = true;
 //   }
 
 //   delay(5000);
 
 //   int pwmVal = map(0, 0, 1023, 1100, 1900);
 //   weaponEsc.writeMicroseconds(pwmVal);
-//   outputWritten = false;
+//   weaponValueChanged = false;
 
 //   delay(5000);
+}
+
+void disarmWeapon() {
+  if (weaponArmed) {
+    int pwmVal = map(0, 0, 1023, 1100, 1900);
+    weaponEsc.writeMicroseconds(pwmVal); // Send signal to ESC.
+    delay(2000);
+
+    weaponArmed = false;
+  }
+}
+
+void armWeaponEsc() {
+  if (!escArmed) {
+    // arm the esc
+    int pwmVal = map(512, 0, 1023, 1100, 1900);
+    weaponEsc.writeMicroseconds(pwmVal);
+    delay(1000);
+    pwmVal = map(0, 0, 1023, 1100, 1900);
+    weaponEsc.writeMicroseconds(pwmVal); // Send signal to ESC.
+    delay(2000);
+    escArmed = true;
+  }
+
+  disarmWeapon();
+}
+
+void armWeapon() {
+  weaponArmed = true;
 }
 
 void setup() {
@@ -142,26 +174,82 @@ void setup() {
 
   // iBUS connected to Serial1: 19 (RX) and 18 (TX)
   // (TX) not in use bc FS-RX2A does not support telemtry
-//   ibus.begin(Serial1);
+  ibus.begin(Serial1);
   
   // We have to wait for the receiver to receive data from the transmitter (transmitter needs to be turned on)
   // as the channel values all read 0 as long as the transmitter is turned off at boot time.
   // We do not want the car to drive full speed backwards out of control.
-//   Serial.println("Wait for receiver");
-//   while (ibus.cnt_rec==0) delay(100);
-//   Serial.println("Init done");
+  Serial.println("Wait for receiver");
+  while (ibus.cnt_rec==0) delay(100);
+  Serial.println("Init done");
 }
 
+int previousWeaponSpeed = -1;
 void loop() {
-//   int x1, y1, x2, y2;
+  int x1, y1, x2, y2, arm, weaponArm, weaponSpeed;
 
-//   // Set values for channels
-//   y1 = ibus.readChannel(0);
-//   x1 = ibus.readChannel(1);
-//   y2 = ibus.readChannel(2);
-//   x2 = ibus.readChannel(3);
+  // Read channel inputs
+  x1 = ibus.readChannel(3);
+  y1 = ibus.readChannel(2);
+  x2 = ibus.readChannel(0);
+  y2 = ibus.readChannel(1);
+  arm = ibus.readChannel(4);
+  weaponArm = ibus.readChannel(5);
+  weaponSpeed = ibus.readChannel(6);
 
-  // TODO: Normalize stick values to speed (even with angular stick pattern)
-  // TODO: Check stick positions & set drive direction
-  testFunctionality();
+  //
+  // GLOBAL ARM
+  //
+  if (arm > TX_CHANNEL_MIDDLE) {
+    robotLocked = false;
+  } else {
+    robotLocked = true;
+  }
+
+  // Check robot lock at this point and prevent any further code from running
+  if (robotLocked) {
+    return;
+  }
+
+  //
+  // WEAPON ARM
+  //
+  if (weaponArm == TX_CHANNEL_MIDDLE) {
+    armWeaponEsc();
+  } else if (weaponArm > TX_CHANNEL_MIDDLE && !weaponArmed) {
+    armWeapon();
+  } else if (weaponArm < TX_CHANNEL_MIDDLE && weaponArmed) {
+    disarmWeapon();
+  }
+
+
+  if (y2 < TX_CHANNEL_MIDDLE - STICK_DEADZONE) {
+    int speed = map(y2, TX_CHANNEL_LOW, TX_CHANNEL_MIDDLE, 0, 254);
+    frontLeftMotor.TurnRight(speed);
+    frontRightMotor.TurnLeft(speed);
+    backLeftMotor.TurnRight(speed);
+    backRightMotor.TurnLeft(speed);
+  } else if (y2 > TX_CHANNEL_MIDDLE + STICK_DEADZONE) {
+    int speed = map(y2, TX_CHANNEL_MIDDLE, TX_CHANNEL_HIGH, 0, 254);
+    frontLeftMotor.TurnLeft(speed);
+    frontRightMotor.TurnRight(speed);
+    backLeftMotor.TurnLeft(speed);
+    backRightMotor.TurnRight(speed);
+  } else {
+    frontLeftMotor.Stop();
+    frontRightMotor.Stop();
+    backLeftMotor.Stop();
+    backRightMotor.Stop();
+  }
+
+  //
+  // WEAPON CONTROL
+  //
+  if ((!weaponValueChanged || weaponSpeed != previousWeaponSpeed) && weaponArmed) {
+    int pwmVal = map(weaponSpeed, TX_CHANNEL_LOW, TX_CHANNEL_HIGH, 1100, 1900);
+    weaponEsc.writeMicroseconds(pwmVal);
+    weaponValueChanged = true;
+  }
+
+  previousWeaponSpeed = weaponSpeed;
 }
