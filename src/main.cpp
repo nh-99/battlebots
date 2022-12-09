@@ -73,64 +73,6 @@ int lastRightLeftMoveVal, lastForwardBackwardMoveVal = 0;
 bool weaponValueChanged = false;
 bool weaponArmed, escArmed = false;
 
-/**
- * Debug
- */
-void testFunctionality() {
-  // TEST DRIVE
-  // frontLeftMotor->TurnRight(100);
-  // frontRightMotor->TurnRight(100);
-  // backLeftMotor->TurnRight(100);
-  // backRightMotor.TurnRight(100);
-  // delay(2000);
-  // frontLeftMotor.Stop();
-  // frontRightMotor.Stop();
-  // backLeftMotor.Stop();
-  // backRightMotor.Stop();
-  // delay(1000);
-  // frontLeftMotor.TurnLeft(100);
-  // frontRightMotor.TurnLeft(100);
-  // backLeftMotor.TurnLeft(100);
-  // backRightMotor.TurnLeft(100);
-  // delay(2000);
-  // frontLeftMotor.Stop();
-  // frontRightMotor.Stop();
-  // backLeftMotor.Stop();
-  // backRightMotor.Stop();
-  // delay(1000);
-
-  // TEST ARM
-//   int i = 0;
-//   int pos = 0;
-//   while (i < 10) {
-//     for (pos = 0; pos <= 20; pos += 1) { // goes from 0 degrees to 180 degrees
-//       // in steps of 1 degree
-//       armServo.write(pos);              // tell servo to go to position in variable 'pos'
-//       delay(15);                       // waits 15 ms for the servo to reach the position
-//     }
-//     for (pos = 20; pos >= 0; pos -= 1) { // goes from 180 degrees to 0 degrees
-//       armServo.write(pos);              // tell servo to go to position in variable 'pos'
-//       delay(15);                       // waits 15 ms for the servo to reach the position
-//     }
-//     i++;
-//   }
-
-//   // TEST WEAPON
-//   if (!weaponValueChanged) {
-//     int pwmVal = map(300, 0, 1023, 1100, 1900);
-//     weaponEsc.writeMicroseconds(pwmVal);
-//     weaponValueChanged = true;
-//   }
-
-//   delay(5000);
-
-//   int pwmVal = map(0, 0, 1023, 1100, 1900);
-//   weaponEsc.writeMicroseconds(pwmVal);
-//   weaponValueChanged = false;
-
-//   delay(5000);
-}
-
 void disarmWeapon() {
   if (weaponArmed) {
     int pwmVal = map(0, 0, 1023, 1100, 1900);
@@ -216,13 +158,13 @@ void loop() {
   //
   // WEAPON ARMING
   //
-  // if (weaponArm == TX_CHANNEL_MIDDLE) {
-  //   armWeaponEsc();
-  // } else if (weaponArm > TX_CHANNEL_MIDDLE && !weaponArmed) {
-  //   armWeapon();
-  // } else if (weaponArm < TX_CHANNEL_MIDDLE && weaponArmed) {
-  //   disarmWeapon();
-  // }
+  if (weaponArm == TX_CHANNEL_MIDDLE) {
+    armWeaponEsc();
+  } else if (weaponArm > TX_CHANNEL_MIDDLE && !weaponArmed) {
+    armWeapon();
+  } else if (weaponArm < TX_CHANNEL_MIDDLE && weaponArmed) {
+    disarmWeapon();
+  }
 
   //
   // MOVEMENT
