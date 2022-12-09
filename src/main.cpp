@@ -4,9 +4,6 @@
 #include "L298N.h"
 #include "mecanumdrive.h"
 
-// Telementry for iBUS
-#define IBUS_SENSOR_TYPE_FUEL 0x06
-
 // Stick values for iBUS
 #define TX_CHANNEL_HIGH 2012
 #define TX_CHANNEL_LOW 988
@@ -28,14 +25,11 @@
 
 /**
  * Controls are:
- * - Movement
- * - Arm up/down
- * - Weapon on/off
- * - Overall arm/disarm
- * - Weapon motor direction
- * 
- * - Curve for throttle - configurable via remote??
- * 
+ * - movement (horizontal, lateral, rotational)
+ * - arm up/down
+ * - robot arm/disarm
+ * - weapon arm/disarm
+ * - weapon speed
  * 
  * Channel 01 - aileron - Movement right/left
  * Channel 02 - elevon - Movement forward/back
@@ -43,8 +37,8 @@
  * Channel 04 - rudder - Movement rotation ???
  * Channel 05 - switch - arm/disarm
  * Channel 06 - switch - weapon arm/disarm
- * Channel 07 - right potentiometer - weapon direction
- * Channel 08 - switch 3pos - speed curve (3 choices)
+ * Channel 07 - right potentiometer - weapon speed
+ * Channel 08 - ???
  * 
  *   --- CHANNELS ONLY EXIST ON IBUS - IM ON IBUS ---
  * Channel 09 - ???
@@ -128,26 +122,25 @@ void setup() {
 
 int previousWeaponSpeed = -1;
 void loop() {
-  int turn, y1, strafe, forward, arm, weaponArm, weaponSpeed;
+  int x1, y1, x2, y2, arm, weaponArm, weaponSpeed;
 
   // Read channel inputs
-  turn = ibus.readChannel(3);
+  x1 = ibus.readChannel(3);
   y1 = ibus.readChannel(2);
-  strafe = ibus.readChannel(0);
-  forward = ibus.readChannel(1);
+  x2 = ibus.readChannel(0);
+  y2 = ibus.readChannel(1);
   arm = ibus.readChannel(4);
   weaponArm = ibus.readChannel(5);
   weaponSpeed = ibus.readChannel(6);
 
   //
-  // GLOBAL ARM
+  // GLOBAL ARM / ROBOT LOCK
   //
   if (arm > TX_CHANNEL_MIDDLE) {
     robotLocked = false;
   } else {
     robotLocked = true;
   }
-
   // Check robot lock at this point, run disarm functions, and prevent more code from running
   if (robotLocked) {
     disarmWeapon();
@@ -169,7 +162,7 @@ void loop() {
   //
   // MOVEMENT
   //
-  mecanumDrive.HandleStickInput(turn, strafe, forward);
+  mecanumDrive.HandleStickInput(x1, x2, y2);
 
   //
   // WEAPON CONTROL

@@ -24,32 +24,38 @@ void MecanumDrive::Disable() {
   backLeftMotor->Disable();
   backRightMotor->Disable();
 }
-float norm(int in) {
-  if (in < 1000) in = 1000;
-  if (in > 2000) in = 2000;
-  return (float(in-1500.0)) / 500.0; 
-}
-void MecanumDrive::HandleStickInput(int forward, int strafe, int turn) {
-  float forwardNormalized = norm(forward);
-  float strafeNormalized = norm(strafe);
-  float turnNormalized = norm(turn);
+/**
+ * Handle Stick Inputs
+ * 
+ * Takes input from the directional sticks for the robot drive. Outputs
+ * proper values and speeds to the motors.
+ * 
+ * @param x1 The number value from the channel mapping x1 input (1000 > x > 2000)
+ * @param x2 The number value from the channel mapping x2 input (1000 > x > 2000)
+ * @param y2 The number value from the channel mapping y2 input (1000 > x > 2000)
+*/
+void MecanumDrive::HandleStickInput(int x1, int x2, int y2) {
+  float x1Normalized = norm(x1);
+  float x2Normalized = norm(x2);
+  float y2Normalized = norm(y2);
 
-  int forwardSpeed = map(abs(forwardNormalized) * 100.0f, 0, 100, 0, 255);
-  int strafeSpeed = map(abs(strafeNormalized) * 100.0f, 0, 100, 0, 255);
-  int turnSpeed = map(abs(turnNormalized) * 100.0f, 0, 100, 0, 255);
-  int movementSpeed = max(max(forwardSpeed, strafeSpeed), turnSpeed);
-  float m1 = (forwardNormalized+strafeNormalized+turnNormalized)/3.0;
-  float m2 = (forwardNormalized-strafeNormalized-turnNormalized)/3.0;
-  float m3 = (forwardNormalized-strafeNormalized+turnNormalized)/3.0;
-  float m4 = (forwardNormalized+strafeNormalized-turnNormalized)/3.0;
+  int x1Speed = map(abs(x1Normalized) * 100.0f, 0, 100, 0, 255);
+  int x2Speed = map(abs(x2Normalized) * 100.0f, 0, 100, 0, 255);
+  int y2Speed = map(abs(y2Normalized) * 100.0f, 0, 100, 0, 255);
+  int movementSpeed = max(max(x1Speed, x2Speed), y2Speed);
+  float m1 = (x1Normalized+x2Normalized+y2Normalized)/3.0;
+  float m2 = (x1Normalized-x2Normalized-y2Normalized)/3.0;
+  float m3 = (x1Normalized-x2Normalized+y2Normalized)/3.0;
+  float m4 = (x1Normalized+x2Normalized-y2Normalized)/3.0;
 
   frontLeftMotor->SetSignal(m1, movementSpeed);
   frontRightMotor->SetSignal(m2, movementSpeed);
   backLeftMotor->SetSignal(m3, movementSpeed);
   backRightMotor->SetSignal(m4, movementSpeed);
 }
-
-
+//
+// API for autonomous driving
+//
 void MecanumDrive::Stop() {
   frontLeftMotor->Stop();
   frontRightMotor->Stop();
@@ -115,4 +121,9 @@ void MecanumDrive::RotateRight(uint8_t spd) {
   frontRightMotor->TurnRight(spd);
   backLeftMotor->TurnRight(spd);
   backRightMotor->TurnRight(spd);
+}
+float MecanumDrive::norm(int in) {
+  if (in < 1000) in = 1000;
+  if (in > 2000) in = 2000;
+  return (float(in-1500.0)) / 500.0; 
 }

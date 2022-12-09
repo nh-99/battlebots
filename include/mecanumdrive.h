@@ -36,5 +36,7 @@ class MecanumDrive
     MotorDriver * frontRightMotor;
     MotorDriver * backLeftMotor;
     MotorDriver * backRightMotor;
+
+    float norm(int);
 };
 #endif
