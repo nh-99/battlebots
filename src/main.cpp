@@ -173,4 +173,11 @@ void loop() {
     weaponValueChanged = true;
     previousWeaponSpeed = weaponSpeed;
   }
+
+  //
+  // ARTICULATING ARM POSITION
+  //
+  y1 = y1 < 1000 ? 1000 : y1;
+  y1 = y1 > 2000 ? 2000 : y1;
+  armServo.write(map(y1, 1000, 2000, 0, 179));
 }
