@@ -12,13 +12,14 @@
 class L298N: public MotorDriver
 {
   public:
-    L298N(uint8_t L_PWM, uint8_t R_PWM);
+    L298N(uint8_t, uint8_t);
     L298N();
     void Enable();
     void Disable();
 
-    void TurnLeft(uint8_t pwm);
-    void TurnRight(uint8_t pwm);
+    void TurnLeft(uint8_t);
+    void TurnRight(uint8_t);
+    void SetSignal(float, int);
     void Stop();
 
   private:

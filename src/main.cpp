@@ -2,7 +2,7 @@
 #include <Servo.h>
 
 #include "L298N.h"
-// #include "swervedrive.h"
+#include "mecanumdrive.h"
 
 // Telementry for iBUS
 #define IBUS_SENSOR_TYPE_FUEL 0x06
@@ -54,10 +54,12 @@
 IBusBM ibus; // IBus object
 
 // Motors for swerve drive
-L298N frontLeftMotor(FLM_L_PWM, FLM_R_PWM);
-L298N frontRightMotor(FRM_L_PWM, FRM_R_PWM);
-L298N backLeftMotor(BLM_L_PWM, BLM_R_PWM);
-L298N backRightMotor(BRM_L_PWM, BRM_R_PWM);
+MotorDriver *frontLeftMotor = new L298N(FLM_L_PWM, FLM_R_PWM);
+MotorDriver *frontRightMotor = new L298N(FRM_L_PWM, FRM_R_PWM);
+MotorDriver *backLeftMotor = new L298N(BLM_L_PWM, BLM_R_PWM);
+MotorDriver *backRightMotor = new L298N(BRM_L_PWM, BRM_R_PWM);
+
+MecanumDrive mecanumDrive(frontLeftMotor, frontRightMotor, backLeftMotor, backRightMotor);
 
 Servo armServo;
 Servo weaponEsc;
@@ -71,33 +73,31 @@ int lastRightLeftMoveVal, lastForwardBackwardMoveVal = 0;
 bool weaponValueChanged = false;
 bool weaponArmed, escArmed = false;
 
-// SwerveDrive swerveDrive(&frontLeftMotor, &frontRightMotor, &backLeftMotor, &backRightMotor);
-
 /**
  * Debug
  */
 void testFunctionality() {
   // TEST DRIVE
-  frontLeftMotor.TurnRight(100);
-  frontRightMotor.TurnRight(100);
-  backLeftMotor.TurnRight(100);
-  backRightMotor.TurnRight(100);
-  delay(2000);
-  frontLeftMotor.Stop();
-  frontRightMotor.Stop();
-  backLeftMotor.Stop();
-  backRightMotor.Stop();
-  delay(1000);
-  frontLeftMotor.TurnLeft(100);
-  frontRightMotor.TurnLeft(100);
-  backLeftMotor.TurnLeft(100);
-  backRightMotor.TurnLeft(100);
-  delay(2000);
-  frontLeftMotor.Stop();
-  frontRightMotor.Stop();
-  backLeftMotor.Stop();
-  backRightMotor.Stop();
-  delay(1000);
+  // frontLeftMotor->TurnRight(100);
+  // frontRightMotor->TurnRight(100);
+  // backLeftMotor->TurnRight(100);
+  // backRightMotor.TurnRight(100);
+  // delay(2000);
+  // frontLeftMotor.Stop();
+  // frontRightMotor.Stop();
+  // backLeftMotor.Stop();
+  // backRightMotor.Stop();
+  // delay(1000);
+  // frontLeftMotor.TurnLeft(100);
+  // frontRightMotor.TurnLeft(100);
+  // backLeftMotor.TurnLeft(100);
+  // backRightMotor.TurnLeft(100);
+  // delay(2000);
+  // frontLeftMotor.Stop();
+  // frontRightMotor.Stop();
+  // backLeftMotor.Stop();
+  // backRightMotor.Stop();
+  // delay(1000);
 
   // TEST ARM
 //   int i = 0;
@@ -164,10 +164,10 @@ void setup() {
   Serial.begin(115200);
 
   // Setup drivetrain motors
-  frontLeftMotor.Enable();
-  frontRightMotor.Enable();
-  backLeftMotor.Enable();
-  backRightMotor.Enable();
+  frontLeftMotor->Enable();
+  frontRightMotor->Enable();
+  backLeftMotor->Enable();
+  backRightMotor->Enable();
 
   armServo.attach(9);
   weaponEsc.attach(10);
@@ -186,13 +186,13 @@ void setup() {
 
 int previousWeaponSpeed = -1;
 void loop() {
-  int x1, y1, x2, y2, arm, weaponArm, weaponSpeed;
+  int turn, y1, strafe, forward, arm, weaponArm, weaponSpeed;
 
   // Read channel inputs
-  x1 = ibus.readChannel(3);
+  turn = ibus.readChannel(3);
   y1 = ibus.readChannel(2);
-  x2 = ibus.readChannel(0);
-  y2 = ibus.readChannel(1);
+  strafe = ibus.readChannel(0);
+  forward = ibus.readChannel(1);
   arm = ibus.readChannel(4);
   weaponArm = ibus.readChannel(5);
   weaponSpeed = ibus.readChannel(6);
@@ -206,41 +206,28 @@ void loop() {
     robotLocked = true;
   }
 
-  // Check robot lock at this point and prevent any further code from running
+  // Check robot lock at this point, run disarm functions, and prevent more code from running
   if (robotLocked) {
+    disarmWeapon();
+    mecanumDrive.Stop();
     return;
   }
 
   //
-  // WEAPON ARM
+  // WEAPON ARMING
   //
-  if (weaponArm == TX_CHANNEL_MIDDLE) {
-    armWeaponEsc();
-  } else if (weaponArm > TX_CHANNEL_MIDDLE && !weaponArmed) {
-    armWeapon();
-  } else if (weaponArm < TX_CHANNEL_MIDDLE && weaponArmed) {
-    disarmWeapon();
-  }
+  // if (weaponArm == TX_CHANNEL_MIDDLE) {
+  //   armWeaponEsc();
+  // } else if (weaponArm > TX_CHANNEL_MIDDLE && !weaponArmed) {
+  //   armWeapon();
+  // } else if (weaponArm < TX_CHANNEL_MIDDLE && weaponArmed) {
+  //   disarmWeapon();
+  // }
 
-
-  if (y2 < TX_CHANNEL_MIDDLE - STICK_DEADZONE) {
-    int speed = map(y2, TX_CHANNEL_LOW, TX_CHANNEL_MIDDLE, 0, 254);
-    frontLeftMotor.TurnRight(speed);
-    frontRightMotor.TurnLeft(speed);
-    backLeftMotor.TurnRight(speed);
-    backRightMotor.TurnLeft(speed);
-  } else if (y2 > TX_CHANNEL_MIDDLE + STICK_DEADZONE) {
-    int speed = map(y2, TX_CHANNEL_MIDDLE, TX_CHANNEL_HIGH, 0, 254);
-    frontLeftMotor.TurnLeft(speed);
-    frontRightMotor.TurnRight(speed);
-    backLeftMotor.TurnLeft(speed);
-    backRightMotor.TurnRight(speed);
-  } else {
-    frontLeftMotor.Stop();
-    frontRightMotor.Stop();
-    backLeftMotor.Stop();
-    backRightMotor.Stop();
-  }
+  //
+  // MOVEMENT
+  //
+  mecanumDrive.HandleStickInput(turn, strafe, forward);
 
   //
   // WEAPON CONTROL
@@ -249,7 +236,6 @@ void loop() {
     int pwmVal = map(weaponSpeed, TX_CHANNEL_LOW, TX_CHANNEL_HIGH, 1100, 1900);
     weaponEsc.writeMicroseconds(pwmVal);
     weaponValueChanged = true;
+    previousWeaponSpeed = weaponSpeed;
   }
-
-  previousWeaponSpeed = weaponSpeed;
 }

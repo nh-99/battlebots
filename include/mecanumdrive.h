@@ -1,5 +1,5 @@
-#ifndef SWERVEDRIVE_H
-#define SWERVEDRIVE_H
+#ifndef MECANUMDRIVE_H
+#define MECANUMDRIVE_H
 
 #if defined(ARDUINO) && ARDUINO >= 100
 #include "Arduino.h"
@@ -9,13 +9,15 @@
 
 #include "motor_driver.h"
 
-class SwerveDrive
+class MecanumDrive
 {
   public:
-    SwerveDrive(MotorDriver*, MotorDriver*, MotorDriver*, MotorDriver*);
-    SwerveDrive();
+    MecanumDrive(MotorDriver*, MotorDriver*, MotorDriver*, MotorDriver*);
+    MecanumDrive();
     void Enable();
     void Disable();
+
+    void HandleStickInput(int, int, int);
 
     void Stop();
     void MoveForward(uint8_t);

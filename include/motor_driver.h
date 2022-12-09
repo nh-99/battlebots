@@ -7,8 +7,9 @@ class MotorDriver
     virtual void Enable();
     virtual void Disable();
 
-    virtual void TurnLeft(uint8_t pwm);
-    virtual void TurnRight(uint8_t pwm);
+    virtual void TurnLeft(uint8_t);
+    virtual void TurnRight(uint8_t);
+    virtual void SetSignal(float, int);
     virtual void Stop();
 };
 #endif
