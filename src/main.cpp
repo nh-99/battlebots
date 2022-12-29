@@ -1,8 +1,8 @@
 #include <IBusBM.h>
-#include <Servo.h>
 
-#include "L298N.h"
+#include "motor_driver_L298N.h"
 #include "mecanumdrive.h"
+#include "drivers/timer.h"
 
 // Stick values for iBUS
 #define TX_CHANNEL_HIGH 2012
@@ -55,8 +55,10 @@ MotorDriver *backRightMotor = new L298N(BRM_L_PWM, BRM_R_PWM);
 
 MecanumDrive mecanumDrive(frontLeftMotor, frontRightMotor, backLeftMotor, backRightMotor);
 
-Servo armServo;
-Servo weaponEsc;
+TimerOrchestrator timerOrchestrator;
+
+// Servo armServo;
+// Servo weaponEsc;
 
 /**
  * Global lock on robot. Prevents all parts of robot from functioning until enabled.
@@ -70,7 +72,7 @@ bool weaponArmed, escArmed = false;
 void disarmWeapon() {
   if (weaponArmed) {
     int pwmVal = map(0, 0, 1023, 1100, 1900);
-    weaponEsc.writeMicroseconds(pwmVal); // Send signal to ESC.
+    // weaponEsc.writeMicroseconds(pwmVal); // Send signal to ESC.
     delay(2000);
 
     weaponArmed = false;
@@ -81,10 +83,10 @@ void armWeaponEsc() {
   if (!escArmed) {
     // arm the esc
     int pwmVal = map(512, 0, 1023, 1100, 1900);
-    weaponEsc.writeMicroseconds(pwmVal);
+    // weaponEsc.writeMicroseconds(pwmVal);
     delay(1000);
     pwmVal = map(0, 0, 1023, 1100, 1900);
-    weaponEsc.writeMicroseconds(pwmVal); // Send signal to ESC.
+    // weaponEsc.writeMicroseconds(pwmVal); // Send signal to ESC.
     delay(2000);
     escArmed = true;
   }
@@ -105,8 +107,8 @@ void setup() {
   backLeftMotor->Enable();
   backRightMotor->Enable();
 
-  armServo.attach(9);
-  weaponEsc.attach(10);
+  // armServo.attach(9);
+  // weaponEsc.attach(10);
 
   // iBUS connected to Serial1: 19 (RX) and 18 (TX)
   // (TX) not in use bc FS-RX2A does not support telemtry
@@ -122,6 +124,7 @@ void setup() {
 
 int previousWeaponSpeed = -1;
 void loop() {
+  ibus.loop(); // called manually since Arduino Due does not support interrupts
   int x1, y1, x2, y2, arm, weaponArm, weaponSpeed;
 
   // Read channel inputs
@@ -169,7 +172,7 @@ void loop() {
   //
   if ((!weaponValueChanged || weaponSpeed != previousWeaponSpeed) && weaponArmed) {
     int pwmVal = map(weaponSpeed, TX_CHANNEL_LOW, TX_CHANNEL_HIGH, 1100, 1900);
-    weaponEsc.writeMicroseconds(pwmVal);
+    // weaponEsc.writeMicroseconds(pwmVal);
     weaponValueChanged = true;
     previousWeaponSpeed = weaponSpeed;
   }
@@ -179,5 +182,22 @@ void loop() {
   //
   y1 = y1 < 1000 ? 1000 : y1;
   y1 = y1 > 2000 ? 2000 : y1;
-  armServo.write(map(y1, 1000, 2000, 0, 179));
+  // armServo.write(map(y1, 1000, 2000, 0, 179));
+}
+
+
+///
+// Arduino workaround
+///
+void TC3_Handler()
+{
+  timerOrchestrator.GetActiveTimer(0).functionToRun();
+}
+void TC4_Handler()
+{
+  timerOrchestrator.GetActiveTimer(1).functionToRun();
+}
+void TC5_Handler()
+{
+  timerOrchestrator.GetActiveTimer(2).functionToRun();
 }
