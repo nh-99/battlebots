@@ -155,7 +155,7 @@ void loop() {
   //
   // WEAPON CONTROL
   //
-  if ((!weaponValueChanged || weaponSpeed != previousWeaponSpeed) && weaponArmed) {
+  if (weaponArmed) {
     int throttleVal = map(weaponSpeed, TX_CHANNEL_LOW, TX_CHANNEL_HIGH, 48, 2047);
     weaponEsc.setThrottle(throttleVal);
     weaponValueChanged = true;
