@@ -12,17 +12,17 @@
 #define STICK_DEADZONE 10
 
 // Drivetrain motor PWM
-#define FLM_L_PWM 11
-#define FLM_R_PWM 8
+#define FLM_L_PWM 8
+#define FLM_R_PWM 11
 
-#define FRM_L_PWM 7
-#define FRM_R_PWM 6
+#define FRM_L_PWM 6
+#define FRM_R_PWM 7
 
-#define BLM_L_PWM 13
-#define BLM_R_PWM 12
+#define BLM_L_PWM 12
+#define BLM_R_PWM 13
 
-#define BRM_L_PWM 5
-#define BRM_R_PWM 4
+#define BRM_L_PWM 4
+#define BRM_R_PWM 5
 
 /**
  * Controls are:
@@ -71,8 +71,6 @@ bool weaponArmed, escArmed = false;
 void disarmWeapon() {
   if (weaponArmed) {
     weaponEsc.setThrottle(0);
-    delay(2000);
-
     weaponArmed = false;
   }
 }
@@ -86,13 +84,15 @@ void ibusLoop() {
 }
 
 void setup() {
-  Serial.begin(115200);
-
-  // Setup drivetrain motors
-  frontLeftMotor->Enable();
-  frontRightMotor->Enable();
-  backLeftMotor->Enable();
-  backRightMotor->Enable();
+// Hack to prevent inputs from going high at startup
+  pinMode(FLM_L_PWM, INPUT_PULLUP);
+  pinMode(FLM_R_PWM, INPUT_PULLUP);
+  pinMode(FRM_L_PWM, INPUT_PULLUP);
+  pinMode(FRM_R_PWM, INPUT_PULLUP);
+  pinMode(BLM_L_PWM, INPUT_PULLUP);
+  pinMode(BLM_R_PWM, INPUT_PULLUP);
+  pinMode(BRM_L_PWM, INPUT_PULLUP);
+  pinMode(BRM_R_PWM, INPUT_PULLUP);
 
   armServo.attach(9);
   weaponEsc.attach(10);
@@ -108,6 +108,16 @@ void setup() {
   Serial.println("Wait for receiver");
   while (ibus.cnt_rec==0) delay(100);
   Serial.println("Init done");
+
+// Hack to prevent inputs from going high at startup
+  pinMode(FLM_L_PWM, OUTPUT);
+  pinMode(FLM_R_PWM, OUTPUT);
+  pinMode(FRM_L_PWM, OUTPUT);
+  pinMode(FRM_R_PWM, OUTPUT);
+  pinMode(BLM_L_PWM, OUTPUT);
+  pinMode(BLM_R_PWM, OUTPUT);
+  pinMode(BRM_L_PWM, OUTPUT);
+  pinMode(BRM_R_PWM, OUTPUT);
 }
 
 int previousWeaponSpeed = -1;
@@ -141,9 +151,9 @@ void loop() {
   //
   // WEAPON ARMING
   //
-  if (weaponArm >= TX_CHANNEL_HIGH - STICK_DEADZONE) {
+  if (!weaponArmed && weaponArm >= TX_CHANNEL_HIGH - STICK_DEADZONE) {
     armWeapon();
-  } else if (weaponArm < TX_CHANNEL_HIGH - STICK_DEADZONE) {
+  } else if (weaponArmed &&weaponArm < TX_CHANNEL_HIGH - STICK_DEADZONE) {
     disarmWeapon();
   }
 
@@ -155,7 +165,7 @@ void loop() {
   //
   // WEAPON CONTROL
   //
-  if (weaponArmed) {
+  if (!robotLocked && weaponArmed) {
     int throttleVal = map(weaponSpeed, TX_CHANNEL_LOW, TX_CHANNEL_HIGH, 48, 2047);
     weaponEsc.setThrottle(throttleVal);
     weaponValueChanged = true;
@@ -165,7 +175,7 @@ void loop() {
   //
   // ARTICULATING ARM POSITION
   //
-  y1 = y1 < 1000 ? 1000 : y1;
-  y1 = y1 > 2000 ? 2000 : y1;
-  armServo.write(map(y1, 1000, 2000, 0, 179));
+  // y1 = y1 < 1000 ? 1000 : y1;
+  // y1 = y1 > 2000 ? 2000 : y1;
+  // armServo.write(map(y1, 1000, 2000, 0, 179));
 }
