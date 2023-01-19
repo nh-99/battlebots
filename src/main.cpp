@@ -8,6 +8,7 @@
 #define TX_CHANNEL_HIGH 2012
 #define TX_CHANNEL_LOW 988
 #define TX_CHANNEL_MIDDLE 1500
+#define TX_FAILSAFE_MEASUREMENT_INTERVAL_MILLIS 200
 #define TX_FAILSAFE_MEASUREMENT_COUNT 2
 #define STICK_DEADZONE 10
 
@@ -128,7 +129,7 @@ void loop() {
 
   // Implement failsafe. When RX loses connection, the cnt will output a consistent 49.
   // If we see that for 4 data points in a row (unlikely in normal use), we failsafe.
-  if (millis() > previousMillis + 200) {
+  if (millis() > previousMillis + TX_FAILSAFE_MEASUREMENT_INTERVAL_MILLIS) {
     if (previousCntRec == ibus.cnt_rec) {
       failsafeCounter++;
     } else if (failsafeCounter < 0) {
