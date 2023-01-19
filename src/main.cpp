@@ -60,14 +60,14 @@ MecanumDrive mecanumDrive(frontLeftMotor, frontRightMotor, backLeftMotor, backRi
 DShot weaponEsc;
 
 /**
- * Global lock on robot. Prevents all parts of robot from functioning until enabled.
+ * Global lock on robot & failsafe lock. Prevents all parts of robot from functioning until enabled.
 */
 bool robotLocked = true;
+bool failsafe = true;
 
 int lastRightLeftMoveVal, lastForwardBackwardMoveVal = 0;
 bool weaponValueChanged = false;
 bool weaponArmed, escArmed = false;
-bool failsafe = true;
 
 void disarmWeapon() {
   if (weaponArmed) {
