@@ -1,5 +1,4 @@
 #include <IBusBM.h>
-#include <Servo.h>
 
 #include "DShotTimer2.h"
 #include "motor_driver_L298N.h"
@@ -9,20 +8,21 @@
 #define TX_CHANNEL_HIGH 2012
 #define TX_CHANNEL_LOW 988
 #define TX_CHANNEL_MIDDLE 1500
+#define TX_FAILSAFE_MEASUREMENT_COUNT 2
 #define STICK_DEADZONE 10
 
 // Drivetrain motor PWM
-#define FLM_L_PWM 8
-#define FLM_R_PWM 11
+#define FLM_L_PWM 5
+#define FLM_R_PWM 4
 
-#define FRM_L_PWM 6
-#define FRM_R_PWM 7
+#define FRM_L_PWM 11
+#define FRM_R_PWM 8
 
-#define BLM_L_PWM 12
-#define BLM_R_PWM 13
+#define BLM_L_PWM 7
+#define BLM_R_PWM 6
 
-#define BRM_L_PWM 4
-#define BRM_R_PWM 5
+#define BRM_L_PWM 12
+#define BRM_R_PWM 13 
 
 /**
  * Controls are:
@@ -39,7 +39,7 @@
  * Channel 05 - switch - arm/disarm
  * Channel 06 - switch - weapon arm/disarm
  * Channel 07 - right potentiometer - weapon speed
- * Channel 08 - ???
+ * Channel 08 - failsafe
  * 
  *   --- CHANNELS ONLY EXIST ON IBUS - IM ON IBUS ---
  * Channel 09 - ???
@@ -56,7 +56,6 @@ MotorDriver *backRightMotor = new L298N(BRM_L_PWM, BRM_R_PWM);
 
 MecanumDrive mecanumDrive(frontLeftMotor, frontRightMotor, backLeftMotor, backRightMotor);
 
-Servo armServo;
 DShot weaponEsc;
 
 /**
@@ -67,6 +66,7 @@ bool robotLocked = true;
 int lastRightLeftMoveVal, lastForwardBackwardMoveVal = 0;
 bool weaponValueChanged = false;
 bool weaponArmed, escArmed = false;
+bool failsafe = true;
 
 void disarmWeapon() {
   if (weaponArmed) {
@@ -84,17 +84,17 @@ void ibusLoop() {
 }
 
 void setup() {
-// Hack to prevent inputs from going high at startup
-  pinMode(FLM_L_PWM, INPUT_PULLUP);
-  pinMode(FLM_R_PWM, INPUT_PULLUP);
-  pinMode(FRM_L_PWM, INPUT_PULLUP);
-  pinMode(FRM_R_PWM, INPUT_PULLUP);
-  pinMode(BLM_L_PWM, INPUT_PULLUP);
-  pinMode(BLM_R_PWM, INPUT_PULLUP);
-  pinMode(BRM_L_PWM, INPUT_PULLUP);
-  pinMode(BRM_R_PWM, INPUT_PULLUP);
+  // Serial.begin(9600);
+  // Setup motor pins as outputs
+  pinMode(FLM_L_PWM, OUTPUT);
+  pinMode(FLM_R_PWM, OUTPUT);
+  pinMode(FRM_L_PWM, OUTPUT);
+  pinMode(FRM_R_PWM, OUTPUT);
+  pinMode(BLM_L_PWM, OUTPUT);
+  pinMode(BLM_R_PWM, OUTPUT);
+  pinMode(BRM_L_PWM, OUTPUT);
+  pinMode(BRM_R_PWM, OUTPUT);
 
-  armServo.attach(9);
   weaponEsc.attach(10);
   weaponEsc.setThrottle(0);
 
@@ -108,19 +108,12 @@ void setup() {
   Serial.println("Wait for receiver");
   while (ibus.cnt_rec==0) delay(100);
   Serial.println("Init done");
-
-// Hack to prevent inputs from going high at startup
-  pinMode(FLM_L_PWM, OUTPUT);
-  pinMode(FLM_R_PWM, OUTPUT);
-  pinMode(FRM_L_PWM, OUTPUT);
-  pinMode(FRM_R_PWM, OUTPUT);
-  pinMode(BLM_L_PWM, OUTPUT);
-  pinMode(BLM_R_PWM, OUTPUT);
-  pinMode(BRM_L_PWM, OUTPUT);
-  pinMode(BRM_R_PWM, OUTPUT);
 }
 
 int previousWeaponSpeed = -1;
+int failsafeCounter = 0;
+uint8_t previousCntRec = 0;
+unsigned long previousMillis;
 void loop() {
   int x1, y1, x2, y2, arm, weaponArm, weaponSpeed;
 
@@ -133,6 +126,27 @@ void loop() {
   weaponArm = ibus.readChannel(5);
   weaponSpeed = ibus.readChannel(6);
 
+  // Implement failsafe. When RX loses connection, the cnt will output a consistent 49.
+  // If we see that for 4 data points in a row (unlikely in normal use), we failsafe.
+  if (millis() > previousMillis + 200) {
+    if (previousCntRec == ibus.cnt_rec) {
+      failsafeCounter++;
+    } else if (failsafeCounter < 0) {
+      failsafeCounter = 0;
+    } else {
+      failsafeCounter--;
+    }
+    if (failsafeCounter > TX_FAILSAFE_MEASUREMENT_COUNT) {
+      failsafe = true;
+      failsafeCounter = TX_FAILSAFE_MEASUREMENT_COUNT;
+    } else {
+      failsafe = false;
+    }
+    previousCntRec = ibus.cnt_rec;
+
+    previousMillis = millis();
+  }
+
   //
   // GLOBAL ARM / ROBOT LOCK
   //
@@ -141,8 +155,8 @@ void loop() {
   } else {
     robotLocked = true;
   }
-  // Check robot lock at this point, run disarm functions, and prevent more code from running
-  if (robotLocked) {
+  // Check robot lock & failsafe at this point, run disarm functions, and prevent more code from running
+  if (robotLocked || failsafe) {
     disarmWeapon();
     mecanumDrive.Stop();
     return;
