@@ -44,9 +44,9 @@ void MecanumDrive::HandleStickInput(int x1, int x2, int y2) {
   int y2Speed = map(abs(y2Normalized) * 100.0f, 0, 100, 0, 255);
   int movementSpeed = max(max(x1Speed, x2Speed), y2Speed);
   float m1 = (x1Normalized+x2Normalized+y2Normalized)/3.0;
-  float m2 = (x1Normalized-x2Normalized-y2Normalized)/3.0;
+  float m2 = (x1Normalized+x2Normalized-y2Normalized)/3.0;
   float m3 = (x1Normalized-x2Normalized+y2Normalized)/3.0;
-  float m4 = (x1Normalized+x2Normalized-y2Normalized)/3.0;
+  float m4 = (x1Normalized-x2Normalized-y2Normalized)/3.0;
 
   frontLeftMotor->SetSignal(m1, movementSpeed);
   frontRightMotor->SetSignal(m2, movementSpeed);

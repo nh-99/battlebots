@@ -1,4 +1,5 @@
 #include <IBusBM.h>
+#include <Servo.h>
 
 #include "DShotTimer2.h"
 #include "motor_driver_L298N.h"
@@ -25,6 +26,9 @@
 #define BRM_L_PWM 12
 #define BRM_R_PWM 13 
 
+#define ARM_SERVO_PIN 9
+#define WEAPON_SERVO_PIN 10
+
 /**
  * Controls are:
  * - movement (horizontal, lateral, rotational)
@@ -40,7 +44,7 @@
  * Channel 05 - switch - arm/disarm
  * Channel 06 - switch - weapon arm/disarm
  * Channel 07 - right potentiometer - weapon speed
- * Channel 08 - failsafe
+ * Channel 08 - switch - arm servo arm/disarm
  * 
  *   --- CHANNELS ONLY EXIST ON IBUS - IM ON IBUS ---
  * Channel 09 - ???
@@ -57,6 +61,7 @@ MotorDriver *backRightMotor = new L298N(BRM_L_PWM, BRM_R_PWM);
 
 MecanumDrive mecanumDrive(frontLeftMotor, frontRightMotor, backLeftMotor, backRightMotor);
 
+Servo armServo;
 DShot weaponEsc;
 
 /**
@@ -67,7 +72,7 @@ bool failsafe = true;
 
 int lastRightLeftMoveVal, lastForwardBackwardMoveVal = 0;
 bool weaponValueChanged = false;
-bool weaponArmed, escArmed = false;
+bool weaponArmed, escArmed, armArmed = false;
 
 void disarmWeapon() {
   if (weaponArmed) {
@@ -78,6 +83,20 @@ void disarmWeapon() {
 
 void armWeapon() {
   weaponArmed = true;
+}
+
+void disarmArmAction() {
+  if (armArmed) {
+    armServo.detach();
+    armArmed = false;
+  }
+}
+
+void armArmAction() {
+  if (!armArmed) {
+    armServo.attach(ARM_SERVO_PIN);
+    armArmed = true;
+  }
 }
 
 void ibusLoop() {
@@ -96,7 +115,7 @@ void setup() {
   pinMode(BRM_L_PWM, OUTPUT);
   pinMode(BRM_R_PWM, OUTPUT);
 
-  weaponEsc.attach(10);
+  weaponEsc.attach(WEAPON_SERVO_PIN);
   weaponEsc.setThrottle(0);
 
   // iBUS connected to Serial1: 19 (RX) and 18 (TX)
@@ -116,7 +135,7 @@ int failsafeCounter = 0;
 uint8_t previousCntRec = 0;
 unsigned long previousMillis;
 void loop() {
-  int x1, y1, x2, y2, arm, weaponArm, weaponSpeed;
+  int x1, y1, x2, y2, arm, weaponArm, weaponSpeed, armArm;
 
   // Read channel inputs
   x1 = ibus.readChannel(3);
@@ -126,6 +145,7 @@ void loop() {
   arm = ibus.readChannel(4);
   weaponArm = ibus.readChannel(5);
   weaponSpeed = ibus.readChannel(6);
+  armArm = ibus.readChannel(7);
 
   // Implement failsafe. When RX loses connection, the cnt will output a consistent 49.
   // If we see that for 4 data points in a row (unlikely in normal use), we failsafe.
@@ -159,6 +179,7 @@ void loop() {
   // Check robot lock & failsafe at this point, run disarm functions, and prevent more code from running
   if (robotLocked || failsafe) {
     disarmWeapon();
+    disarmArmAction();
     mecanumDrive.Stop();
     return;
   }
@@ -170,6 +191,15 @@ void loop() {
     armWeapon();
   } else if (weaponArmed &&weaponArm < TX_CHANNEL_HIGH - STICK_DEADZONE) {
     disarmWeapon();
+  }
+
+  //
+  // ARM ARMING
+  //
+  if (!armArmed && armArm > TX_CHANNEL_MIDDLE + STICK_DEADZONE) {
+    armArmAction();
+  } else if (armArmed && armArm <= TX_CHANNEL_MIDDLE) {
+    disarmArmAction();
   }
 
   //
@@ -190,7 +220,9 @@ void loop() {
   //
   // ARTICULATING ARM POSITION
   //
-  // y1 = y1 < 1000 ? 1000 : y1;
-  // y1 = y1 > 2000 ? 2000 : y1;
-  // armServo.write(map(y1, 1000, 2000, 0, 179));
+  if (armArmed) {
+    y1 = y1 < 1000 ? 1000 : y1;
+    y1 = y1 > 2000 ? 2000 : y1;
+    armServo.write(map(y1, 1000, 2000, 0, 179));
+  }
 }
